@@ -1,249 +1,55 @@
 import './App.css';
+import Parser from "./Parser";
 import React from "react";
 
-function parse(str){
-  if(str[str.length-1] == "."){
-    str += "0";
-  }
-  return parseFloat(str);
-}
-
-function calculate(expr, internal){
-  let tokens = [];
-  let number = [];
-  for(let i=0; i<expr.length; ++i){
-    if("pm".includes(internal[i])){
-      if(number.length>0){
-        let n = number.join("");
-        tokens.push(parse(n));
-        number = [];
-      }
-      tokens.push(expr[i]);
-    }
-    else{
-      number.push(expr[i]);
-    }
-  }
-  if(number.length>0){
-    let n = number.join("");
-    if(n!="-"){
-      tokens.push(parse(n));
-    }
-  }
-  if(tokens.length>0 && typeof(tokens[tokens.length-1])=="string"){
-    tokens.pop();
-  }
-  let stack = [];
-  for(let t of tokens){
-    if(stack.length==0 || typeof(t)=="string"){
-      stack.push(t)
-    }
-    else{
-      if("*/".includes(stack[stack.length-1])){
-        let op = stack.pop();
-        let num = stack.pop();
-        stack.push(op=="*"?(num*t):(num/t));
-      }
-      else{
-        stack.push(t);
-      }
-    }
-  }
-  let result = 0;
-  let op = "+";
-  for(let t of stack){
-    if(typeof(t)=="string"){
-      op = t;
-    }
-    else{
-      result = op=="+"?(result+t):(result-t);
-    }
-  }
-  
-  return result.toString();
-}
 
 function handleEqual(state){
-  let result = calculate(state.calc, state.internal)
-  let tokens = [];
-  let numberToken = "b";
-  for(let a of result){
-    switch(a){
-      case "-":
-        tokens.push("n");
-        break;
-      case ".":
-        numberToken = "a";
-      default:
-        tokens.push(numberToken);
+  let parser = new Parser(state.expression);
+  let result = null;
+  try{
+    let result = parser.parse().toString();
+    let len = result.length;
+    return {
+      expression: result,
+      input_cur_start: len,
+      input_cur_end: len,
     }
   }
-  let internal = tokens.join("");
-  return {
-    internal,
-    history: state.calc,
-    calc: result,
-  }
-}
-
-function handleMinus(state){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0 || internal.charAt(len-1)=="m"){
-    internal += "n";
-    calc += "-";
-  }
-  else if("pn".includes(internal.charAt(len-1))){
-    calc = calc.slice(0, len-1) + "-";
-  }
-  else{
-    internal += "p";
-    calc += "-";
-  }
-  return {
-    internal,
-    calc,
-  }
-}
-
-function handleAddition(state){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0){
-    return {}
-  }
-  else if(internal.charAt(len-1) == "n"){
-    if(len==1){
-      return {}
+  catch(e){
+    return {
+      expression: e,
+      input_cur_start:0,
+      input_cur_end:0,
     }
-    internal = internal.slice(0, len-2) + "p";
-    calc = calc.slice(0, len-2) + "+";
-  }
-  else if("pm".includes(internal.charAt(len-1))){
-    internal = internal.slice(0, len-1) + "p";
-    calc = calc.slice(0, len-1) + "+";
-  }
-  else{
-    internal += "p";
-    calc += "+";
-  }
-  return {
-    internal,
-    calc,
   }
 }
 
-function handleMulDiv(state, input){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0){
-    return {}
-  }
-  else if(internal.charAt(len-1) == "n"){
-    if(len==1){
-      return {}
-    }
-    internal = internal.slice(0, len-2) + "m";
-    calc = calc.slice(0, len-2) + input;
-  }
-  else if("pm".includes(internal.charAt(len-1))){
-    internal = internal.slice(0, len-1) + "m";
-    calc = calc.slice(0, len-1) + input;
-  }
-  else{
-    internal += "m";
-    calc += input;
-  }
-  return {
-    internal,
-    calc,
-  }
-}
-
-function handleDot(state){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0 || internal.charAt(len-1)!="a"){
-    internal += "a";
-    calc += ".";
-  }
-  else{
-    return {}
-  }
-  return {
-    internal,
-    calc,
-  }
-}
-
-function handleZero(state){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0 || "mpn".includes(internal.charAt(len-1))){
-    internal += "0";
-    calc += "0";
-  }
-  else if(internal.charAt(len - 1) == "0"){
-    return {}
-  }
-  else{
-    internal += internal.charAt(len-1);
-    calc += "0";
-  }
-  return {
-    internal,
-    calc,
-  }
-}
-
-function handleNumbers(state, input){
-  let internal = state.internal;
-  let calc = state.calc;
-  let len = internal.length;
-  if(len==0 || "mpn".includes(internal.charAt(len-1))){
-    internal += "b";
-    calc += input;
-  }
-  else if(internal.charAt(len - 1) == "0"){
-    internal = "b";
-    calc = input;
-  }
-  else{
-    internal += internal.charAt(len-1);
-    calc += input;
-  }
-  return {
-    internal,
-    calc,
-  }
-}
 
 let button_config = [
   {value: "C", top:0, left:0, height:1, width:1},
   {value: "Del", top:0, left:1, height:1, width:1},
   {value: "←", top:0, left:2, height:1, width:1},
   {value: "→", top:0, left:3, height:1, width:1},
-  {value: "9", top:1, left:2, height:1, width:1},
-  {value: "8", top:1, left:1, height:1, width:1},
-  {value: "7", top:1, left:0, height:1, width:1},
-  {value: "6", top:2, left:2, height:1, width:1},
-  {value: "5", top:2, left:1, height:1, width:1},
-  {value: "4", top:2, left:0, height:1, width:1},
-  {value: "3", top:3, left:2, height:1, width:1},
-  {value: "2", top:3, left:1, height:1, width:1},
-  {value: "1", top:3, left:0, height:1, width:1},
-  {value: "0", top:4, left:1, height:1, width:1},
-  {value: ".", top:4, left:0, height:1, width:1},
-  {value: "=", top:4, left:2, height:1, width:1},
-  {value: "+", top:4, left:3, height:1, width:1},
-  {value: "-", top:3, left:3, height:1, width:1},
-  {value: "*", top:2, left:3, height:1, width:1},
-  {value: "/", top:1, left:3, height:1, width:1},
+  {value: "(", top:1, left:0, height:1, width:1},
+  {value: ")", top:1, left:1, height:1, width:1},
+  {value: "E", top:1, left:2, height:1, width:1},
+  {value: "^", top:1, left:3, height:1, width:1},
+  {value: "9", top:2, left:2, height:1, width:1},
+  {value: "8", top:2, left:1, height:1, width:1},
+  {value: "7", top:2, left:0, height:1, width:1},
+  {value: "6", top:3, left:2, height:1, width:1},
+  {value: "5", top:3, left:1, height:1, width:1},
+  {value: "4", top:3, left:0, height:1, width:1},
+  {value: "3", top:4, left:2, height:1, width:1},
+  {value: "2", top:4, left:1, height:1, width:1},
+  {value: "1", top:4, left:0, height:1, width:1},
+  {value: "0", top:5, left:1, height:1, width:1},
+  {value: ".", top:5, left:0, height:1, width:1},
+  {value: "=", top:5, left:2, height:1, width:1},
+  {value: "+", top:5, left:3, height:1, width:1},
+  {value: "-", top:4, left:3, height:1, width:1},
+  {value: "*", top:3, left:3, height:1, width:1},
+  {value: "/", top:2, left:3, height:1, width:1},
 ]
 
 function History(props){
@@ -257,12 +63,32 @@ function History(props){
 class Input extends React.Component{
   constructor(props){
     super(props);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
   }
 
+  handleChange(e){
+    if(this.props.onChange){
+      this.props.onChange(e.target);
+    }
+  }
+
+  handleSelect(e){
+    if(this.props.onSelect){
+      this.props.onSelect(e.target);
+    }
+  }
 
   render(){
     return (
-      <input autofocus="true" value={this.props.text} type="textarea" id="expr_input" ref={this.props.input_ref}/>
+      <input 
+        value={this.props.value} 
+        type="textarea" 
+        id="expr_input" 
+        ref={this.props.input_ref}
+        onSelect={this.handleSelect}
+        onChange={this.handleChange}
+      />
     );
   }
 }
@@ -277,7 +103,12 @@ class Display extends React.Component{
     return (
       <div className="display">
         <History text={this.props.history}/>
-        <Input text={this.props.input} input_ref={this.props.input_ref}/>
+        <Input 
+          value={this.props.input} 
+          input_ref={this.props.input_ref}
+          onChange={this.props.onInputChange}
+          onSelect={this.props.onInputSelect}
+        />
       </div>
     );
   };
@@ -303,18 +134,35 @@ class Button extends React.Component{
 }
 
 
-
 class App extends React.Component{
   constructor(props){
     super(props);
     this.handleButtonInput = this.handleButtonInput.bind(this);
+    this.handleInputChange = this.handleInputChange.bind(this);
+    this.handleInputSelect = this.handleInputSelect.bind(this);
     this.state = {
-      internal: "",
       history: "",
-      calc: "",
+      expression: "",
+      input_cur_start:0,
+      input_cur_end:0,
     };
     this.input_ref = React.createRef();
   };
+
+  handleInputChange(element){
+    this.setState({
+      expression:element.value,
+      input_cur_start: this.input_ref.current.selectionStart,
+      input_cur_end: this.input_ref.current.selectionEnd,
+    });
+  }
+
+  handleInputSelect(){
+    this.setState({
+      input_cur_start: this.input_ref.current.selectionStart,
+      input_cur_end: this.input_ref.current.selectionEnd,
+    });
+  }
 
   handleButtonInput(input){
     this.setState(
@@ -322,20 +170,67 @@ class App extends React.Component{
         let new_state = {};
         if(input == "C"){
           new_state = {
-            internal: "",
-            history: "",
-            calc: "",
+            expression: "",
+            input_cur_start: 0,
+            input_cur_end: 0,
           };
         }
         else if(input == "Del"){
-          new_state = {
-            internal: state.internal.slice(0,-1),
-            calc: state.calc.slice(0,-1)
-          };
+          if(state.input_cur_start == state.input_cur_end){
+            new_state = {
+              expression: state.expression.slice(0,state.input_cur_start-1) + state.expression.slice(state.input_cur_end),
+              input_cur_start: state.input_cur_start-1,
+              input_cur_end: state.input_cur_start-1,
+            };
+          }
+          else{
+            new_state = {
+              expression: state.expression.slice(0,state.input_cur_start) + state.expression.slice(state.input_cur_end),
+              input_cur_start: state.input_cur_start,
+              input_cur_end: state.input_cur_start,
+            };
+          }
         }
         else if(input == "="){
           new_state = handleEqual(state);
         }
+        else if(input == "←"){
+          if(state.input_cur_start == state.input_cur_end){
+            let new_pos = state.input_cur_start==0?0:state.input_cur_start-1;
+            new_state = {
+              input_cur_start: new_pos,
+              input_cur_end: new_pos,
+            }
+          }
+          else{
+            new_state = {
+              input_cur_start: state.input_cur_end,
+            }
+          }
+        }
+        else if(input == "→"){
+          if(state.input_cur_start == state.input_cur_end){
+            let new_pos = state.input_cur_start==state.expression.length?
+              state.expression.length:state.input_cur_start+1;
+            new_state = {
+              input_cur_start: new_pos,
+              input_cur_end: new_pos,
+            }
+          }
+          else{
+            new_state = {
+              input_cur_start: state.input_cur_end,
+            }
+          }
+        }
+        else{
+          new_state = {
+            expression: state.expression.slice(0,state.input_cur_start) + input+state.expression.slice(state.input_cur_end),
+            input_cur_start: state.input_cur_start + input.length,
+            input_cur_end: state.input_cur_start + input.length,
+          }
+        }
+        /*
         else if(input == "."){
           new_state = handleDot(state);
         }
@@ -348,19 +243,21 @@ class App extends React.Component{
         else if(input == "+"){
           new_state = handleAddition(state);
         }
-        else if("*/".includes(input)){
+        else if("/*".includes(input)){
           new_state = handleMulDiv(state, input);
         }
         else if("123456789".includes(input)){
           new_state = handleNumbers(state, input);
         }
+        */
         return new_state
       }
     );
   };
 
-  componentDidMount(){
+  componentDidUpdate(){
     this.input_ref.current.focus();
+    this.input_ref.current.setSelectionRange(this.state.input_cur_start, this.state.input_cur_end);
   }
 
   render(){
@@ -375,13 +272,21 @@ class App extends React.Component{
       };
       return(
         <Button 
-        onClick={this.handleButtonInput} value={element.value}
-        style={style}/>
+          onClick={this.handleButtonInput} value={element.value}
+          style={style}
+          key={element.value}
+        />
       )
     });
     return (
       <div id="calculator">
-        <Display history={this.state.history} input={this.state.calc} input_ref={this.input_ref}/>
+        <Display 
+          history={this.state.history} 
+          input={this.state.expression} 
+          input_ref={this.input_ref}
+          onInputChange={this.handleInputChange}
+          onInputSelect={this.handleInputSelect}
+         />
         <div style={{position: "relative"}}>
           {buttons}
         </div>

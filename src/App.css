@@ -46,12 +46,14 @@
   border:solid 1px;
   vertical-align:top;
   margin-left:25px;
-  overflow:scroll;
 }
 
 #history-display{
   padding:10px;
   font-size:20px;
+  width:calc(100% - 20px);
+  height:calc(100% - 50px);
+  overflow:scroll;
 }
 
 .history-expr{

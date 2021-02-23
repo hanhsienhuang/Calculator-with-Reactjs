@@ -1,31 +1,27 @@
+#calculator{
+  width: 1000px;
+  height: 600px;
+  margin: auto;
+  margin-top: 30px;
+}
+
+#calculation-area{
+  height:600px;
+  width: 500px;
+  display:inline-block;
+  vertical-align:top;
+}
+
 .display{
   position: relative;
   height: 100px;
+  width: 500px;
   border: 1px solid;
   font-size: 20px;
 }
 
-#history{
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding:5px;
-}
 
-#calculation{
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  padding:5px;
-}
-
-#calculator{
-  width: 500px;
-  height: 600px;
-  margin: 30px;
-}
-
-button{
+.button{
   position:absolute;
   font-size: 25px;
 }
@@ -40,4 +36,71 @@ button{
   padding:5px;
   text-align: right;
   width:100%;
+  font-size: 25px;
+}
+
+#histories{
+  display:inline-block;
+  height:580px;
+  width: calc(500px - 30px);
+  border:solid 1px;
+  vertical-align:top;
+  margin-left:25px;
+  overflow:scroll;
+}
+
+#history-display{
+  padding:10px;
+  font-size:20px;
+}
+
+.history-expr{
+  display:inline-block;
+  background-color: #eeeeee;
+  border-radius: 3px;
+  padding: 3px 10px 3px 10px;
+  margin: 2px;
+  margin-right:8px;
+}
+
+.history-answer{
+  display:inline-block;
+  background-color: #eeeeee;
+  border-radius: 3px;
+  padding: 3px 10px 3px 10px;
+  margin: 2px;
+  margin-left:8px;
+}
+
+.history-error{
+  display:inline-block;
+  background-color:red;
+  border-radius: 3px;
+  padding: 3px 10px 3px 10px;
+  margin: 2px;
+  margin-left:8px;
+}
+
+.history-delete{
+  display:inline-block;
+  background-color:#ffbbbb;
+  border-radius: 10px;
+  padding:0 2px 0 2px;
+  margin-right:7px;
+  font-size:15px;
+}
+
+.history-expr:hover{
+  background-color: #aaaaaa;
+  cursor:default;
+}
+
+.history-answer:hover{
+  background-color: #aaaaaa;
+  cursor:default;
+}
+
+.history-delete:hover{
+  background-color: #ff5555;
+  cursor:default;
 }

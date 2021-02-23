@@ -5,10 +5,10 @@ export default class Parser{
     constructor(input){
         this.lexer = new Lexer(input);
         this.token = null;
-        this.nextToken();
     }
 
     parse(){
+        this.nextToken();
         let value = this.expression();
         if(this.token.type != TokenTypes.END){
             this.throw("Not end");

@@ -2,24 +2,41 @@ import './App.css';
 import Parser from "./Parser";
 import React from "react";
 
-
 function handleEqual(state){
+  if(state.expression == ""){
+    return;
+  }
   let parser = new Parser(state.expression);
-  let result = null;
+  let index = state.history.length==0?0:state.history[0].index+1;
   try{
     let result = parser.parse().toString();
     let len = result.length;
+    
     return {
       expression: result,
       input_cur_start: len,
       input_cur_end: len,
+      history : [
+        {
+        expression: state.expression,
+        answer: result,
+        index: index,
+        }
+      ].concat(state.history),
     }
   }
   catch(e){
     return {
-      expression: e,
+      expression: "",
       input_cur_start:0,
       input_cur_end:0,
+      history : [
+        {
+        expression: state.expression,
+        answer: null,
+        index: index,
+        }
+      ].concat(state.history),
     }
   }
 }
@@ -51,11 +68,73 @@ let button_config = [
   {value: "*", top:3, left:3, height:1, width:1},
   {value: "/", top:2, left:3, height:1, width:1},
 ]
+let gw = 125;
+let gh = 80;
+
+class HistoryEntry extends React.Component{
+  constructor(props){
+    super(props);
+    this.handleClickExpr = this.handleClickExpr.bind(this);
+    this.handleClickAns = this.handleClickAns.bind(this);
+    this.handleClickDel = this.handleClickDel.bind(this);
+  }
+
+  handleClickExpr(e){
+    if(this.props.onClickExpr){
+      this.props.onClickExpr(this.props.history.expression);
+    }
+  }
+
+  handleClickAns(e){
+    if(this.props.onClickAns){
+      this.props.onClickAns(this.props.history.answer);
+    }
+  }
+
+  handleClickDel(e){
+    console.log(this.props.history.index);
+    if(this.props.onClickDel){
+      this.props.onClickDel(this.props.history.index);
+    }
+  }
+
+  render(){
+    return (
+      <div>
+        <span className="history-delete" onClick={this.handleClickDel}>✕</span>
+        <span className="history-expr" onClick={this.handleClickExpr}>{this.props.history.expression}</span> 
+        = 
+        {this.props.history.answer === null?(
+            <span className="history-error"> Invalid</span>
+          ):(
+            <span className="history-answer" onClick={this.handleClickAns}>{this.props.history.answer}</span>
+          )
+        }
+      </div>
+    );
+  }
+}
 
 function History(props){
+  let histories = props.entries.map(h =>{
+    return (
+      <HistoryEntry 
+        key={h.index}
+        onClickExpr={props.onClickExpr}
+        onClickAns={props.onClickAns}
+        onClickDel={props.onClickDel}
+        history={h} 
+      />
+    );
+  });
   return (
-    <div id="history">
-      {props.text}
+    <div id="histories">
+      <div>
+        <button onClick={props.onClickDelAll}>Clear</button>
+      </div>
+      <div id="history-display">
+        {histories}
+      </div>
     </div>
   )
 }
@@ -102,7 +181,6 @@ class Display extends React.Component{
   render(){
     return (
       <div className="display">
-        <History text={this.props.history}/>
         <Input 
           value={this.props.input} 
           input_ref={this.props.input_ref}
@@ -126,11 +204,36 @@ class Button extends React.Component{
 
   render(){
     return (
-      <button onClick={this.handleClick} style={this.props.style}> 
+      <button onClick={this.handleClick} style={this.props.style} className="button"> 
         {this.props.value}
       </button>
     );
   };
+}
+
+function Buttons(props){
+  let buttons = button_config.map(element=>{
+    let style = {
+      top : element.top*gh + "px",
+      left: element.left*gw + "px",
+      height: element.height*gh + "px",
+      width: element.width*gw + "px",
+    };
+    return(
+      <Button 
+        onClick={props.onClickButton}
+        value={element.value}
+        style={style}
+        key={element.value}
+      />
+    )
+  });
+  return (
+    <div style={{position: "relative"}}>
+      {buttons}
+    </div>
+  )
+
 }
 
 
@@ -140,14 +243,57 @@ class App extends React.Component{
     this.handleButtonInput = this.handleButtonInput.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleInputSelect = this.handleInputSelect.bind(this);
+    this.handleHistoryInputAns = this.handleHistoryInputAns.bind(this);
+    this.handleHistoryInputExpr = this.handleHistoryInputExpr.bind(this);
+    this.handleHistoryDelete = this.handleHistoryDelete.bind(this);
+    this.handleHistoryDeleteAll = this.handleHistoryDeleteAll.bind(this);
     this.state = {
-      history: "",
+      history: [], // {str expression, str answer, bool valid}
       expression: "",
       input_cur_start:0,
       input_cur_end:0,
     };
     this.input_ref = React.createRef();
   };
+
+  handleHistoryInputExpr(input){
+    this.setState(
+      state => {
+        return {
+          expression: input,
+          input_cur_start: input.length,
+          input_cur_end: input.length,
+        }
+      }
+    )
+  }
+
+  handleHistoryInputAns(input){
+    this.setState(
+      state => {
+        return {
+          expression: state.expression.slice(0,state.input_cur_start) + input+state.expression.slice(state.input_cur_end),
+          input_cur_start: state.input_cur_start + input.length,
+          input_cur_end: state.input_cur_start + input.length,
+        }
+      }
+    )
+  }
+
+  handleHistoryDelete(index){
+    this.setState(
+      state => {
+        return {
+          history : state.history.filter(h=>{
+            return h.index != index;
+          })
+        }
+    })
+  }
+
+  handleHistoryDeleteAll(index){
+    this.setState({history:[]});
+  }
 
   handleInputChange(element){
     this.setState({
@@ -230,26 +376,6 @@ class App extends React.Component{
             input_cur_end: state.input_cur_start + input.length,
           }
         }
-        /*
-        else if(input == "."){
-          new_state = handleDot(state);
-        }
-        else if(input == "0"){
-          new_state = handleZero(state);
-        }
-        else if(input == "-"){
-          new_state = handleMinus(state);
-        }
-        else if(input == "+"){
-          new_state = handleAddition(state);
-        }
-        else if("/*".includes(input)){
-          new_state = handleMulDiv(state, input);
-        }
-        else if("123456789".includes(input)){
-          new_state = handleNumbers(state, input);
-        }
-        */
         return new_state
       }
     );
@@ -261,35 +387,24 @@ class App extends React.Component{
   }
 
   render(){
-    let gw = 125;
-    let gh = 60;
-    let buttons = button_config.map(element=>{
-      let style = {
-        top : element.top*gh + "px",
-        left: element.left*gw + "px",
-        height: element.height*gh + "px",
-        width: element.width*gw + "px",
-      };
-      return(
-        <Button 
-          onClick={this.handleButtonInput} value={element.value}
-          style={style}
-          key={element.value}
-        />
-      )
-    });
     return (
       <div id="calculator">
-        <Display 
-          history={this.state.history} 
-          input={this.state.expression} 
-          input_ref={this.input_ref}
-          onInputChange={this.handleInputChange}
-          onInputSelect={this.handleInputSelect}
-         />
-        <div style={{position: "relative"}}>
-          {buttons}
+        <div id="calculation-area">
+          <Display 
+            input={this.state.expression} 
+            input_ref={this.input_ref}
+            onInputChange={this.handleInputChange}
+            onInputSelect={this.handleInputSelect}
+          />
+          <Buttons onClickButton={this.handleButtonInput}/>
         </div>
+        <History 
+          entries={this.state.history} 
+          onClickExpr={this.handleHistoryInputExpr}
+          onClickAns={this.handleHistoryInputAns}
+          onClickDel={this.handleHistoryDelete}
+          onClickDelAll={this.handleHistoryDeleteAll}
+        />
       </div>
     );
   }
